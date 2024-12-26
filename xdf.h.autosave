@@ -30,6 +30,55 @@
 #include <unordered_map>
 #include <variant>
 
+namespace xdf {
+
+/*! \class Stream
+ *
+ * XDF files uses stream as the unit to store data. An XDF file usually
+ * contains multiple streams, while each of them may contain one or more
+ * channels.
+ * The Stream class provides a handy way to store all the meta-data,
+ * time-series, time-stamps and all other information of a single stream
+ * from an XDF file.
+ */
+struct Stream
+{
+    //! A 2D vector which stores the time series of a stream. Each row represents a channel.
+    //! 
+    std::variant<std::vector<std::vector<std::string>>,
+    std::vector<std::vector<float>>,
+    std::vector<std::vector<double>>,
+    std::vector<std::vector<int>>,
+    std::vector<std::vector<int64_t>>> time_series;
+    std::vector<double> time_stamps; /*!< A vector to store time stamps. */
+    std::string streamHeader;   /*!< Raw XML of stream header chunk. */
+    std::string streamFooter;   /*!< Raw XML of stream footer chunk. */
+
+    struct
+    {
+        int channel_count;      /*!< Number of channels of the current stream */
+        double nominal_srate;   /*!< The nominal sample rate of the current stream. */
+        std::string name;       /*!< Name of the current stream. */
+        std::string type;       /*!< Type of the current stream. */
+        std::string channel_format;/*!< Channel format of the current stream. */
+
+        std::vector<std::map<std::string, std::string> > channels;/*!< A vector to store the meta-data of the channels of the current stream. */
+
+        std::vector<std::pair<double, double> > clock_offsets;  /*!< A vector to store clock offsets from the ClockOffset chunk. */
+
+        double first_timestamp; /*!< First time stamp of the stream. */
+        double last_timestamp;  /*!< Last time stamp of the stream. */
+        int sample_count;       /*!< Sample count of the stream. */
+        double measured_srate;  /*!< Measured sample rate of the stream. */
+        double effective_sample_rate = 0;/*!< Effective sample rate. */
+    } info; /*!< Meta-data from the stream header of the current stream. */
+
+    double last_timestamp = 0;  /*!< For temporary use while loading the vector */
+    double sampling_interval;    /*!< If srate > 0, sampling_interval = 1/srate; otherwise 0 */
+    std::vector<double> clock_times;/*!< Vector of clock times from clock offset chunk (Tag 4). */
+    std::vector<double> clock_values;/*!< Vector of clock values from clock offset chunk (Tag 4). */
+};
+
 /*! \class Xdf
  *
  * Xdf class is designed to store the data of an entire XDF file.
@@ -43,53 +92,9 @@ public:
     //! Default constructor with no parameter.
     Xdf();
 
-    //subclass for single streams
-    /*! \class Stream
-     *
-     * XDF files uses stream as the unit to store data. An XDF file usually
-     * contains multiple streams, while each of them may contain one or more
-     * channels.
-     * The Stream class provides a handy way to store all the meta-data,
-     * time-series, time-stamps and all other information of a single stream
-     * from an XDF file.
-     */
-    template <typename T>
-    struct Stream
-    {
-        //! A 2D vector which stores the time series of a stream. Each row represents a channel.
-        std::vector<std::vector<T>> time_series;
-        std::vector<double> time_stamps; /*!< A vector to store time stamps. */
-        std::string streamHeader;   /*!< Raw XML of stream header chunk. */
-        std::string streamFooter;   /*!< Raw XML of stream footer chunk. */
-
-        struct
-        {
-            int channel_count;      /*!< Number of channels of the current stream */
-            double nominal_srate;   /*!< The nominal sample rate of the current stream. */
-            std::string name;       /*!< Name of the current stream. */
-            std::string type;       /*!< Type of the current stream. */
-            std::string channel_format;/*!< Channel format of the current stream. */
-
-            std::vector<std::map<std::string, std::string> > channels;/*!< A vector to store the meta-data of the channels of the current stream. */
-
-            std::vector<std::pair<double, double> > clock_offsets;  /*!< A vector to store clock offsets from the ClockOffset chunk. */
-
-            double first_timestamp; /*!< First time stamp of the stream. */
-            double last_timestamp;  /*!< Last time stamp of the stream. */
-            int sample_count;       /*!< Sample count of the stream. */
-            double measured_srate;  /*!< Measured sample rate of the stream. */
-            double effective_sample_rate = 0;/*!< Effective sample rate. */
-        } info; /*!< Meta-data from the stream header of the current stream. */
-
-        double last_timestamp{ 0 };  /*!< For temporary use while loading the vector */
-        double sampling_interval;    /*!< If srate > 0, sampling_interval = 1/srate; otherwise 0 */
-        std::vector<double> clock_times;/*!< Vector of clock times from clock offset chunk (Tag 4). */
-        std::vector<double> clock_values;/*!< Vector of clock values from clock offset chunk (Tag 4). */
-    };
-
     //XDF properties=================================================================================
 
-    std::unordered_map<int, std::variant<Stream<int>, Stream<float>, Stream<double>, Stream<int64_t>, Stream<std::string>>> streams_; /*!< Maps stream IDs to stream data of an XDF file. */
+    std::unordered_map<uint32_t, Stream> streams; /*!< Maps stream IDs to stream data of an XDF file. */
     float version;  /*!< The version of XDF file */
 
     uint64_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
@@ -317,5 +322,7 @@ private:
     template<typename T> T readBin(std::istream& is, T* obj = nullptr);
  
 };
+
+} // namespace xdf
 
 #endif // XDF_H
