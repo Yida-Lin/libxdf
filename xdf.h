@@ -316,10 +316,10 @@ private:
      * double foo = readBin<double>(file); // use return value
      * readBin(file, &foo); // read directly into foo
      * \param is an input stream to read from
-     * \param obj pointer to a variable to load the data into or nullptr
      * \return the read data
      */
-    template<typename T> T readBin(std::istream& is, T* obj = nullptr);
+    template <typename T>
+    T readBin(std::istream& is);
  
 };
 

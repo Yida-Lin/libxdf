@@ -133,8 +133,8 @@ int Xdf::load_xdf(std::string filename)
             if (ChLen == 0)
                 break;
 
-            uint16_t tag; //read tag of the chunk, 6 possibilities
-            readBin(file, &tag);
+             //read tag of the chunk, 6 possibilities
+            const uint16_t tag = readBin<uint16_t>(file);
 
             switch (tag)
             {
@@ -158,8 +158,7 @@ int Xdf::load_xdf(std::string filename)
             case 2: //read [StreamHeader] chunk
                 {
                     //read [StreamID]
-                    uint32_t stream_id;
-                    Xdf::readBin(file, &stream_id);
+                    const uint32_t stream_id = readBin<uint32_t>(file);
 
                     pugi::xml_document doc;                    
 
@@ -174,8 +173,7 @@ int Xdf::load_xdf(std::string filename)
             case 3: //read [Samples] chunk
                 {
                     //read [stream_id]
-                    uint32_t stream_id;
-                    Xdf::readBin(file, &stream_id);
+                    const uint32_t stream_id = readBin<uint32_t>(file);
 
                     //read [NumSampleBytes], [NumSamples]
                     uint64_t numSamp = readLength(file);
@@ -189,19 +187,30 @@ int Xdf::load_xdf(std::string filename)
 
                         double ts; //temporary time stamp
 
-                        if (tsBytes == 8)
-                        {
-                            Xdf::readBin(file, &ts);
-                            stream.time_stamps.emplace_back(ts);
-                        }
-                        else
-                        {
-                            ts = stream.last_timestamp + stream.sampling_interval;
-                            stream.time_stamps.emplace_back(ts);
+                        if (tsBytes == 8) {
+                            stream.time_stamps.push_back(readBin<double>(file));
+                        } else {
+                            stream.time_stamps.push_back(stream.last_timestamp + stream.sampling_interval);
                         }
 
                         stream.last_timestamp = ts;
 
+                        std::visit([this, &stream, &file](auto&& arg) {
+                            using T = std::decay_t<decltype(arg)>;
+                            if constexpr (std::is_same_v<T, std::string>) {
+                                for (int v = 0; v < stream.info.channel_count; ++v)
+                                {
+                                    uint64_t length = readLength(file);
+                                    char* buffer = new char[length + 1];
+                                    file.read(buffer, length);
+                                    buffer[length] = '\0';
+                                    arg.emplace_back(buffer);
+                                }
+double
+                            }
+                        }, stream.time_series);
+
+                        //read the data
                         if (stream.info.channel_format.compare("string") == 0)
                         {                            
                             for (int v = 0; v < stream.info.channel_count; ++v)
@@ -214,29 +223,23 @@ int Xdf::load_xdf(std::string filename)
                                 std::vector<std::vector<std::string>>& time_series = std::get<std::vector<std::vector<std::string>>>(stream.time_series);
                                 time_series.emplace_back(buffer);
                             }
-                        }
-                        else
-                        {
-                            //read the data
-                            if (stream.info.channel_format.compare("float32") == 0)
-                            {
+                        } else if (stream.info.channel_format.compare("float32") == 0) {
                                 for (int v = 0; v < stream.info.channel_count; ++v)
                                 {
                                     float data;
                                     Xdf::readBin(file, &data);
                                     stream.time_series[v].emplace_back(data);
                                 }
-                            }
-                            else if (streams[index].info.channel_format.compare("double64") == 0)
+                        } else if (stream.info.channel_format.compare("double64") == 0)
                             {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
+                                for (int v = 0; v < stream.info.channel_count; ++v)
                                 {
                                     double data;
                                     Xdf::readBin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
+                                    std::vector<std::vector<double>>& time_series = std::get<std::vector<std::vector<double>>>(stream.time_series);
+                                    time_series[v].emplace_back(data);
                                 }
-                            }
-                            else if (streams[index].info.channel_format.compare("int8_t") == 0)
+                        } else if (streams[index].info.channel_format.compare("int8_t") == 0)
                             {
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
@@ -270,7 +273,6 @@ int Xdf::load_xdf(std::string filename)
                                     int64_t data;
                                     Xdf::readBin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
-                                }
                             }
                         }
                     }
@@ -296,8 +298,7 @@ int Xdf::load_xdf(std::string filename)
                     pugi::xml_document doc;
 
                     //read [StreamID]
-                    uint32_t stream_id;
-                    Xdf::readBin(file, &stream_id);
+                    const uint32_t stream_id = readBin<uint32_t>(file);
 
                     char* buffer = new char[ChLen - 6];
                     file.read(buffer, ChLen - 6);
@@ -578,28 +579,18 @@ void Xdf::resample(int userSrate)
 //function of reading the length of each chunk
 uint64_t Xdf::readLength(std::ifstream& file)
 {
-    uint8_t bytes = 0;
-    Xdf::readBin(file, &bytes);
-    uint64_t length = 0;
-
-    switch (bytes)
-    {
+    switch (const uint8_t bytes = readBin<uint8_t>(file); bytes) {
     case 1:
-        length = readBin<uint8_t>(file);
-        break;
+        return readBin<uint8_t>(file);
     case 4:
-        length = readBin<uint32_t>(file);
-        break;
+        return readBin<uint32_t>(file);
     case 8:
-        length = readBin<uint64_t>(file);
-        break;
+        return readBin<uint64_t>(file);
     default:
         std::cout << "Invalid variable-length integer length ("
             << static_cast<int>(bytes) << ") encountered.\n";
         return 0;
     }
-
-    return length;
 }
 
 void Xdf::findMinMax()
@@ -968,12 +959,10 @@ void Xdf::loadDictionary()
 }
 
 template <typename T>
-T Xdf::readBin(std::istream& is, T* obj)
-{
-    T dummy;
-    if (!obj) obj = &dummy;
-    is.read(reinterpret_cast<char*>(obj), sizeof(T));
-    return *obj;
+T Xdf::readBin(std::istream& is) {
+    T data;
+    is.read(reinterpret_cast<char*>(data), sizeof(T));
+    return data;
 }
 
 } // namespace xdf
