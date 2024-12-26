@@ -605,7 +605,7 @@ uint64_t Xdf::readLength(std::ifstream& file)
 void Xdf::findMinMax()
 {
     //find the smallest timestamp of all streams
-    for (auto const& stream : streams)
+    for (auto const& [id, stream] : streams)
     {
         if (!std::isnan(stream.info.first_timestamp))
         {
@@ -613,14 +613,14 @@ void Xdf::findMinMax()
             break;
         }
     }
-    for (auto const& stream : streams)
+    for (auto const& [id, stream] : streams)
     {
         if (!std::isnan(stream.info.first_timestamp) && stream.info.first_timestamp < minTS)
             minTS = stream.info.first_timestamp;
     }
 
     //find the max timestamp of all streams
-    for (auto const& stream : streams)
+    for (auto const& [id, stream] : streams)
     {
         if (!std::isnan(stream.info.last_timestamp) && stream.info.last_timestamp > maxTS)
             maxTS = stream.info.last_timestamp;
@@ -636,7 +636,7 @@ void Xdf::findMajSR()
     std::vector<std::pair<sampRate, numChannel>> srateMap; //<srate, numchannels> pairs of all the streams
 
     //find out whether a sample rate already exists in srateMap
-    for (auto const& stream : streams)
+    for (auto const& [id, stream] : streams)
     {
         if (stream.info.nominal_srate != 0)
         {
