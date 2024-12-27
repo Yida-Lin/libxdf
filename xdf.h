@@ -29,6 +29,8 @@
 #include <cstdint>
 #include <variant>
 
+namespace xdf {
+
 /*! \class Xdf
  *
  * Xdf class is designed to store the data of an entire XDF file.
@@ -320,5 +322,7 @@ private:
     template<typename T> T readBin(std::istream& is, T* obj = nullptr);
  
 };
+
+} // namespace xdf
 
 #endif // XDF_H

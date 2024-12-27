@@ -30,6 +30,41 @@
 #include <cmath>
 #include <variant>
 
+namespace xdf {
+namespace {
+
+/*!
+ * \brief Read a binary scalar variable from an input stream.
+ *
+ * readBin is a convenience wrapper for the common
+ * file.read((char*) var, sizeof(var))
+ * operation. Examples:
+ * double foo = readBin<double>(file); // use return value
+ * readBin(file, &foo); // read directly into foo
+ * \param is an input stream to read from
+ * \param obj pointer to a variable to load the data into or nullptr
+ * \return the read data
+ */
+template <typename T>
+T read_bin(std::istream& is, T* obj = nullptr)
+{
+    T dummy;
+    if (!obj) obj = &dummy;
+    is.read(reinterpret_cast<char*>(obj), sizeof(T));
+    return *obj;
+}
+
+
+template <typename T>
+void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series) {
+    for (int v = 0; v < time_series->size(); ++v)
+    {
+        (*time_series)[v].push_back(read_bin<T>(is));
+    }
+}
+
+} // namespace
+
 Xdf::Xdf()
 {
 }
@@ -112,7 +147,7 @@ int Xdf::load_xdf(std::string filename)
                     //read [StreamID]
                     uint32_t streamID;
                     int index;
-                    Xdf::readBin(file, &streamID);
+                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -194,7 +229,7 @@ int Xdf::load_xdf(std::string filename)
                     //read [StreamID]
                     uint32_t streamID;
                     int index;
-                    Xdf::readBin(file, &streamID);
+                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -209,12 +244,6 @@ int Xdf::load_xdf(std::string filename)
                     //read [NumSampleBytes], [NumSamples]
                     uint64_t numSamp = readLength(file);
 
-                    //if the time series is empty
-                    if (streams[index].time_series.empty())
-                    {
-                        streams[index].time_series.resize(streams[index].info.channel_count);
-                    }
-
                     //for each sample
                     for (size_t i = 0; i < numSamp; i++)
                     {
@@ -225,7 +254,7 @@ int Xdf::load_xdf(std::string filename)
 
                         if (tsBytes == 8)
                         {
-                            Xdf::readBin(file, &ts);
+                            read_bin(file, &ts);
                             streams[index].time_stamps.emplace_back(ts);
                         }
                         else
@@ -256,7 +285,7 @@ int Xdf::load_xdf(std::string filename)
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     float data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -265,7 +294,7 @@ int Xdf::load_xdf(std::string filename)
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     double data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -274,7 +303,7 @@ int Xdf::load_xdf(std::string filename)
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int8_t data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -283,7 +312,7 @@ int Xdf::load_xdf(std::string filename)
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int16_t data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -292,7 +321,7 @@ int Xdf::load_xdf(std::string filename)
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -301,7 +330,7 @@ int Xdf::load_xdf(std::string filename)
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int64_t data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -313,7 +342,7 @@ int Xdf::load_xdf(std::string filename)
                 {
                     uint32_t streamID;
                     int index;
-                    Xdf::readBin(file, &streamID);
+                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -328,8 +357,8 @@ int Xdf::load_xdf(std::string filename)
                     double collectionTime;
                     double offsetValue;
 
-                    Xdf::readBin(file, &collectionTime);
-                    Xdf::readBin(file, &offsetValue);
+                    read_bin(file, &collectionTime);
+                    read_bin(file, &offsetValue);
 
                     streams[index].clock_times.emplace_back(collectionTime);
                     streams[index].clock_values.emplace_back(offsetValue);
@@ -342,7 +371,7 @@ int Xdf::load_xdf(std::string filename)
                     //read [StreamID]
                     uint32_t streamID;
                     int index;
-                    Xdf::readBin(file, &streamID);
+                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -634,7 +663,7 @@ void Xdf::resample(int userSrate)
 uint64_t Xdf::readLength(std::ifstream& file)
 {
     uint8_t bytes = 0;
-    Xdf::readBin(file, &bytes);
+    read_bin(file, &bytes);
     uint64_t length = 0;
 
     switch (bytes)
@@ -1022,11 +1051,4 @@ void Xdf::loadDictionary()
     }
 }
 
-template <typename T>
-T Xdf::readBin(std::istream& is, T* obj)
-{
-    T dummy;
-    if (!obj) obj = &dummy;
-    is.read(reinterpret_cast<char*>(obj), sizeof(T));
-    return *obj;
-}
+} // namespace xdf
