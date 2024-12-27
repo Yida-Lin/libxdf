@@ -25,8 +25,6 @@
 #include <algorithm>
 #include "smarc/smarc.h"      //resampling library
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
-#include <numeric>      //std::accumulate
-#include <functional>   // bind2nd
 #include <cmath>
 #include <variant>
 
@@ -75,6 +73,30 @@ Stream MakeStream(const pugi::xml_node doc, const std::string_view stream_header
     return stream;
 }
 
+/*!
+ * \brief Read a binary scalar variable from an input stream.
+ *
+ * read_bin is a convenience wrapper for the common
+ * file.read((char*) var, sizeof(var))
+ * operation. Examples:
+ * double foo = readBin<double>(file); // use return value
+ * readBin(file, &foo); // read directly into foo
+ * \param is an input stream to read from
+ * \return the read data
+ */
+template <typename T>
+T read_bin(std::istream& is) {
+    T data;
+    is.read(reinterpret_cast<char*>(data), sizeof(T));
+    return data;
+}
+
+template <typename T>
+void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series) {
+    for (int v = 0; v < time_series->size(); ++v) {
+        time_series[v].push_back(read_bin<T>(is));
+    }
+}
 
 } // namespace
 
@@ -134,7 +156,7 @@ int Xdf::load_xdf(std::string filename)
                 break;
 
              //read tag of the chunk, 6 possibilities
-            const uint16_t tag = readBin<uint16_t>(file);
+            const uint16_t tag = read_bin<uint16_t>(file);
 
             switch (tag)
             {
@@ -204,7 +226,7 @@ int Xdf::load_xdf(std::string filename)
                                     char* buffer = new char[length + 1];
                                     file.read(buffer, length);
                                     buffer[length] = '\0';
-                                    arg.emplace_back(buffer);
+                                    arg[v].emplace_back(buffer);
                                 }
 double
                             }
@@ -224,10 +246,14 @@ double
                                 time_series.emplace_back(buffer);
                             }
                         } else if (stream.info.channel_format.compare("float32") == 0) {
+
+                            read_time_series(file,
+                                             &std::get<std::vector<std::vector<float>>>(
+                                                 stream.time_series));
                                 for (int v = 0; v < stream.info.channel_count; ++v)
                                 {
                                     float data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     stream.time_series[v].emplace_back(data);
                                 }
                         } else if (stream.info.channel_format.compare("double64") == 0)
@@ -235,7 +261,7 @@ double
                                 for (int v = 0; v < stream.info.channel_count; ++v)
                                 {
                                     double data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     std::vector<std::vector<double>>& time_series = std::get<std::vector<std::vector<double>>>(stream.time_series);
                                     time_series[v].emplace_back(data);
                                 }
@@ -244,7 +270,7 @@ double
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int8_t data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -253,7 +279,7 @@ double
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int16_t data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -262,7 +288,7 @@ double
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                                 }
                             }
@@ -271,7 +297,7 @@ double
                                 for (int v = 0; v < streams[index].info.channel_count; ++v)
                                 {
                                     int64_t data;
-                                    Xdf::readBin(file, &data);
+                                    read_bin(file, &data);
                                     streams[index].time_series[v].emplace_back(data);
                             }
                         }
@@ -281,13 +307,13 @@ double
             case 4: //read [ClockOffset] chunk
                 {
                     uint32_t stream_id;
-                    Xdf::readBin(file, &stream_id);
+                    read_bin(file, &stream_id);
 
                     double collectionTime;
                     double offsetValue;
 
-                    Xdf::readBin(file, &collectionTime);
-                    Xdf::readBin(file, &offsetValue);
+                    read_bin(file, &collectionTime);
+                    read_bin(file, &offsetValue);
 
                     streams[stream_id].clock_times.emplace_back(collectionTime);
                     streams[stream_id].clock_values.emplace_back(offsetValue);
@@ -956,13 +982,6 @@ void Xdf::loadDictionary()
         else //store its index into eventType vector
             eventType.emplace_back(std::distance(dictionary.begin(), it));
     }
-}
-
-template <typename T>
-T Xdf::readBin(std::istream& is) {
-    T data;
-    is.read(reinterpret_cast<char*>(data), sizeof(T));
-    return data;
 }
 
 } // namespace xdf
