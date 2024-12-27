@@ -156,6 +156,36 @@ int Xdf::load_xdf(std::string filename)
                     else
                         streams[index].sampling_interval = 0;
 
+                    Stream& stream = streams[index];
+                    const int channel_count = stream.info.channel_count;
+                    if (const std::string_view channel_format = stream.info.channel_format;
+                            channel_format.compare("string") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<std::string>>(
+                            channel_count);
+                    }
+                    else if (channel_format.compare("float32") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<float>>(
+                            channel_count);
+                    }
+                    else if (channel_format.compare("double64") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<double>>(
+                            channel_count);
+                    }
+                    else if (channel_format.compare("int8_t") == 0 ||
+                               channel_format.compare("int16_t") == 0 ||
+                               channel_format.compare("int32_t") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<int>>(channel_count);
+                    }
+                    else if (channel_format.compare("int64_t") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<int64_t>>(
+                                channel_count);
+                    }
+
                     delete[] buffer;
                 }
                 break;
