@@ -752,10 +752,12 @@ void Xdf::adjustTotalLength()
 {
     for (auto const& stream : streams)
     {
-        if (!stream.time_series.empty())
+        if (stream.time_series.index() != std::variant_npos &&
+            stream.info.channel_format.compare("string") != 0)
         {
-            if (totalLen < stream.time_series.front().size())
-                totalLen = stream.time_series.front().size();
+            std::visit([this](auto&& time_series) {
+                totalLen = std::max(totalLen, time_series.front().size());
+            }, stream.time_series);
         }
     }
 }
@@ -953,7 +955,7 @@ void Xdf::createLabels()
         }
         else
         {
-            for (size_t ch = 0; ch < streams[st].time_series.size(); ch++)
+            for (size_t ch = 0; ch < streams[st].info.channel_count; ch++)
             {
                 // +1 for 1 based numbers; for user convenience only. The internal computation is still 0 based
                 std::string label = "Stream " + std::to_string(st + 1) +
