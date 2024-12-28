@@ -226,6 +226,10 @@ int Xdf::load_xdf(std::string filename)
                         stream.time_series = std::vector<std::vector<int64_t>>(
                                 channel_count);
                     }
+                    else {
+                        throw std::runtime_error("Unexpected channel format: "
+                                                 + std::string(channel_format));
+                    }
                 }
                 break;
             case 3: //read [Samples] chunk
