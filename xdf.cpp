@@ -46,7 +46,7 @@ namespace {
  * \return the read data
  */
 template <typename T>
-T read_bin(std::istream& is)
+[[nodiscard]] T read_bin(std::istream& is)
 {
     T obj;
     is.read(reinterpret_cast<char*>(&obj), sizeof(T));
