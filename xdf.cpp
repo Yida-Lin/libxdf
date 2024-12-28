@@ -187,6 +187,8 @@ int Xdf::load_xdf(std::string filename)
                     else
                         streams[index].sampling_interval = 0;
 
+                    delete[] buffer;
+
                     Stream& stream = streams[index];
                     const int channel_count = stream.info.channel_count;
                     if (const std::string_view channel_format = stream.info.channel_format;
@@ -224,8 +226,6 @@ int Xdf::load_xdf(std::string filename)
                         stream.time_series = std::vector<std::vector<int64_t>>(
                                 channel_count);
                     }
-
-                    delete[] buffer;
                 }
                 break;
             case 3: //read [Samples] chunk
@@ -251,7 +251,7 @@ int Xdf::load_xdf(std::string filename)
                     for (size_t i = 0; i < numSamp; i++)
                     {
                         //read or deduce time stamp
-                        auto tsBytes = read_bin<uint8_t>(file);
+                        const auto tsBytes = read_bin<uint8_t>(file);
 
                         double ts; //temporary time stamp
 
@@ -270,11 +270,12 @@ int Xdf::load_xdf(std::string filename)
                         Stream& stream = streams[index];
 
                         std::visit([this, &file](auto&& arg) {
-                            using T = std::decay_t<decltype(arg)>;
+                            using T = typename std::remove_reference_t<decltype(arg)>
+                                ::value_type::value_type;
                             if constexpr (std::is_same_v<T, std::string>) {
                                 for (int v = 0; v < arg.size(); ++v)
                                 {
-                                    auto length = Xdf::readLength(file);
+                                    const auto length = Xdf::readLength(file);
                                     char* buffer = new char[length + 1];
                                     file.read(buffer, length);
                                     buffer[length] = '\0';
@@ -513,9 +514,10 @@ void Xdf::resample(int userSrate)
             // initialize smarc filter state
             struct PState* pstate = smarc_init_pstate(pfilt);
 
-            std::visit([&pfilt, &pstate](auto&& arg) {
-                using T = typename std::decay_t<decltype(arg)>::value_type::value_type;
-                for (std::vector<T>& row : arg)
+            std::visit([&pfilt, &pstate](auto&& time_series) {
+                using T = typename std::remove_reference_t<decltype(time_series)>
+                    ::value_type::value_type;
+                for (std::vector<T>& row : time_series)
                 {
                     // initialize buffers
                     int read = 0;
