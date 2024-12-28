@@ -714,9 +714,10 @@ void Xdf::calcTotalChannel()
     //calculating total channel count, and indexing them onto streamMap
     for (size_t c = 0; c < streams.size(); c++)
     {
-        if (!streams[c].time_series.empty())
+        if (streams[c].time_series.index() != std::variant_npos &&
+            streams[c].info.channel_format.compare("string") != 0)
         {
-            totalCh += streams[c].info.channel_count;
+            numerical_channel_count_ += streams[c].info.channel_count;
 
             for (int i = 0; i < streams[c].info.channel_count; i++)
                 streamMap.emplace_back(c);
