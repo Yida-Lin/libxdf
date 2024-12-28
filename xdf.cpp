@@ -46,12 +46,11 @@ namespace {
  * \return the read data
  */
 template <typename T>
-T read_bin(std::istream& is, T* obj = nullptr)
+T read_bin(std::istream& is)
 {
-    T dummy;
-    if (!obj) obj = &dummy;
-    is.read(reinterpret_cast<char*>(obj), sizeof(T));
-    return *obj;
+    T obj;
+    is.read(reinterpret_cast<char*>(&obj), sizeof(T));
+    return obj;
 }
 
 template <typename T>
@@ -119,10 +118,8 @@ int Xdf::load_xdf(std::string filename)
             if (ChLen == 0)
                 break;
 
-            uint16_t tag; //read tag of the chunk, 6 possibilities
-            read_bin(file, &tag);
-
-            switch (tag)
+            //read tag of the chunk, 6 possibilities
+            switch (const auto tag = read_bin<uint16_t>(file); tag)
             {
             case 1: //[FileHeader]
                 {
@@ -144,9 +141,9 @@ int Xdf::load_xdf(std::string filename)
             case 2: //read [StreamHeader] chunk
                 {
                     //read [StreamID]
-                    uint32_t streamID;
+                    const auto streamID = read_bin<uint32_t>(file);
                     int index;
-                    read_bin(file, &streamID);
+
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -234,9 +231,8 @@ int Xdf::load_xdf(std::string filename)
             case 3: //read [Samples] chunk
                 {
                     //read [StreamID]
-                    uint32_t streamID;
+                    const auto streamID = read_bin<uint32_t>(file);
                     int index;
-                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -261,7 +257,7 @@ int Xdf::load_xdf(std::string filename)
 
                         if (tsBytes == 8)
                         {
-                            read_bin(file, &ts);
+                            ts = read_bin<double>(file);
                             streams[index].time_stamps.emplace_back(ts);
                         }
                         else
@@ -294,9 +290,8 @@ int Xdf::load_xdf(std::string filename)
                 break;
             case 4: //read [ClockOffset] chunk
                 {
-                    uint32_t streamID;
+                    const auto streamID = read_bin<uint32_t>(file);
                     int index;
-                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -307,15 +302,11 @@ int Xdf::load_xdf(std::string filename)
                     else
                         index = std::distance(idmap.begin(), it);
 
+                    const auto collection_time = read_bin<double>(file);
+                    const auto offset_value = read_bin<double>(file);
 
-                    double collectionTime;
-                    double offsetValue;
-
-                    read_bin(file, &collectionTime);
-                    read_bin(file, &offsetValue);
-
-                    streams[index].clock_times.emplace_back(collectionTime);
-                    streams[index].clock_values.emplace_back(offsetValue);
+                    streams[index].clock_times.push_back(collection_time);
+                    streams[index].clock_values.push_back(offset_value);
                 }
                 break;
             case 6: //read [StreamFooter] chunk
@@ -323,9 +314,8 @@ int Xdf::load_xdf(std::string filename)
                     pugi::xml_document doc;
 
                     //read [StreamID]
-                    uint32_t streamID;
+                    const auto streamID = read_bin<uint32_t>(file);
                     int index;
-                    read_bin(file, &streamID);
                     std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
                     if (it == idmap.end())
                     {
@@ -609,11 +599,8 @@ void Xdf::resample(int userSrate)
 //function of reading the length of each chunk
 uint64_t Xdf::readLength(std::ifstream& file)
 {
-    uint8_t bytes = 0;
-    read_bin(file, &bytes);
     uint64_t length = 0;
-
-    switch (bytes)
+    switch (const auto bytes = read_bin<uint8_t>(file); bytes)
     {
     case 1:
         length = read_bin<uint8_t>(file);
