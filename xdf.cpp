@@ -36,11 +36,11 @@ namespace {
 /*!
  * \brief Read a binary scalar variable from an input stream.
  *
- * readBin is a convenience wrapper for the common
+ * read_bin is a convenience wrapper for the common
  * file.read((char*) var, sizeof(var))
  * operation. Examples:
- * double foo = readBin<double>(file); // use return value
- * readBin(file, &foo); // read directly into foo
+ * double foo = read_bin<double>(file); // use return value
+ * read_bin(file, &foo); // read directly into foo
  * \param is an input stream to read from
  * \param obj pointer to a variable to load the data into or nullptr
  * \return the read data
@@ -54,10 +54,9 @@ T read_bin(std::istream& is, T* obj = nullptr)
     return *obj;
 }
 
-
 template <typename T>
 void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series) {
-    for (int v = 0; v < time_series->size(); ++v)
+    for (size_t v = 0; v < time_series->size(); ++v)
     {
         (*time_series)[v].push_back(read_bin<T>(is));
     }
@@ -121,7 +120,7 @@ int Xdf::load_xdf(std::string filename)
                 break;
 
             uint16_t tag; //read tag of the chunk, 6 possibilities
-            readBin(file, &tag);
+            read_bin(file, &tag);
 
             switch (tag)
             {
@@ -209,9 +208,17 @@ int Xdf::load_xdf(std::string filename)
                         stream.time_series = std::vector<std::vector<double>>(
                             channel_count);
                     }
-                    else if (channel_format.compare("int8_t") == 0 ||
-                               channel_format.compare("int16_t") == 0 ||
-                               channel_format.compare("int32_t") == 0)
+                    else if (channel_format.compare("int8_t") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<int8_t>>(
+                            channel_count);
+                    }
+                    else if (channel_format.compare("int16_t") == 0)
+                    {
+                        stream.time_series = std::vector<std::vector<int16_t>>(
+                            channel_count);
+                    }
+                    else if (channel_format.compare("int32_t") == 0)
                     {
                         stream.time_series = std::vector<std::vector<int>>(channel_count);
                     }
@@ -248,7 +255,7 @@ int Xdf::load_xdf(std::string filename)
                     for (size_t i = 0; i < numSamp; i++)
                     {
                         //read or deduce time stamp
-                        auto tsBytes = readBin<uint8_t>(file);
+                        auto tsBytes = read_bin<uint8_t>(file);
 
                         double ts; //temporary time stamp
 
@@ -264,77 +271,24 @@ int Xdf::load_xdf(std::string filename)
                         }
 
                         streams[index].last_timestamp = ts;
+                        Stream& stream = streams[index];
 
-                        if (streams[index].info.channel_format.compare("string") == 0)
-                        {
-                            for (int v = 0; v < streams[index].info.channel_count; ++v)
-                            {
-                                auto length = Xdf::readLength(file);
-                                char* buffer = new char[length + 1];
-                                file.read(buffer, length);
-                                buffer[length] = '\0';
-
-                                streams[index].time_series[v].emplace_back(buffer);
-                            }
-                        }
-                        else
-                        {
-                            //read the data
-                            if (streams[index].info.channel_format.compare("float32") == 0)
-                            {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
+                        std::visit([this, &file](auto&& arg) {
+                            using T = std::decay_t<decltype(arg)>;
+                            if constexpr (std::is_same_v<T, std::string>) {
+                                for (int v = 0; v < arg.size(); ++v)
                                 {
-                                    float data;
-                                    read_bin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
+                                    auto length = Xdf::readLength(file);
+                                    char* buffer = new char[length + 1];
+                                    file.read(buffer, length);
+                                    buffer[length] = '\0';
+                                    arg[v].emplace_back(buffer);
+                                    delete[] buffer;
                                 }
+                            } else {
+                                read_time_series(file, &arg);
                             }
-                            else if (streams[index].info.channel_format.compare("double64") == 0)
-                            {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
-                                {
-                                    double data;
-                                    read_bin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
-                                }
-                            }
-                            else if (streams[index].info.channel_format.compare("int8_t") == 0)
-                            {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
-                                {
-                                    int8_t data;
-                                    read_bin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
-                                }
-                            }
-                            else if (streams[index].info.channel_format.compare("int16_t") == 0)
-                            {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
-                                {
-                                    int16_t data;
-                                    read_bin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
-                                }
-                            }
-                            else if (streams[index].info.channel_format.compare("int32_t") == 0)
-                            {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
-                                {
-                                    int data;
-                                    read_bin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
-                                }
-                            }
-                            else if (streams[index].info.channel_format.compare("int64_t") == 0)
-                            {
-                                for (int v = 0; v < streams[index].info.channel_count; ++v)
-                                {
-                                    int64_t data;
-                                    read_bin(file, &data);
-                                    streams[index].time_series[v].emplace_back(data);
-                                }
-                            }
-                        }
+                        }, stream.time_series);
                     }
                 }
                 break;
@@ -669,13 +623,13 @@ uint64_t Xdf::readLength(std::ifstream& file)
     switch (bytes)
     {
     case 1:
-        length = readBin<uint8_t>(file);
+        length = read_bin<uint8_t>(file);
         break;
     case 4:
-        length = readBin<uint32_t>(file);
+        length = read_bin<uint32_t>(file);
         break;
     case 8:
-        length = readBin<uint64_t>(file);
+        length = read_bin<uint64_t>(file);
         break;
     default:
         std::cout << "Invalid variable-length integer length ("

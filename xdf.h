@@ -58,10 +58,12 @@ public:
     {
         //! A 2D vector which stores the time series of a stream. Each row represents a channel.
         std::variant<
+            std::vector<std::vector<int8_t>>,
+            std::vector<std::vector<int16_t>>,
             std::vector<std::vector<int>>,
+            std::vector<std::vector<int64_t>>,
             std::vector<std::vector<float>>,
             std::vector<std::vector<double>>,
-            std::vector<std::vector<int64_t>>,
             std::vector<std::vector<std::string>>> time_series;
         std::vector<double> time_stamps; /*!< A vector to store time stamps. */
         std::string streamHeader;   /*!< Raw XML of stream header chunk. */
@@ -306,21 +308,6 @@ private:
      * \return The length of the upcoming chunk (in bytes).
      */
     uint64_t readLength(std::ifstream &file);
-
-	/*!
-     * \brief Read a binary scalar variable from an input stream.
-     *
-     * readBin is a convenience wrapper for the common
-     * file.read((char*) var, sizeof(var))
-     * operation. Examples:
-     * double foo = readBin<double>(file); // use return value
-     * readBin(file, &foo); // read directly into foo
-     * \param is an input stream to read from
-     * \param obj pointer to a variable to load the data into or nullptr
-     * \return the read data
-     */
-    template<typename T> T readBin(std::istream& is, T* obj = nullptr);
- 
 };
 
 } // namespace xdf
