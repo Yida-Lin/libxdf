@@ -141,14 +141,14 @@ int Xdf::load_xdf(std::string filename)
             case 2: //read [StreamHeader] chunk
                 {
                     //read [StreamID]
-                    const auto streamID = read_bin<uint32_t>(file);
+                    const auto stream_id = read_bin<uint32_t>(file);
                     int index;
 
-                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
+                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), stream_id)};
                     if (it == idmap.end())
                     {
                         index = idmap.size();
-                        idmap.emplace_back(streamID);
+                        idmap.emplace_back(stream_id);
                         streams.emplace_back();
                     }
                     else
@@ -231,13 +231,13 @@ int Xdf::load_xdf(std::string filename)
             case 3: //read [Samples] chunk
                 {
                     //read [StreamID]
-                    const auto streamID = read_bin<uint32_t>(file);
+                    const auto stream_id = read_bin<uint32_t>(file);
                     int index;
-                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
+                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), stream_id)};
                     if (it == idmap.end())
                     {
                         index = idmap.size();
-                        idmap.emplace_back(streamID);
+                        idmap.emplace_back(stream_id);
                         streams.emplace_back();
                     }
                     else
@@ -290,13 +290,13 @@ int Xdf::load_xdf(std::string filename)
                 break;
             case 4: //read [ClockOffset] chunk
                 {
-                    const auto streamID = read_bin<uint32_t>(file);
+                    const auto stream_id = read_bin<uint32_t>(file);
                     int index;
-                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
+                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), stream_id)};
                     if (it == idmap.end())
                     {
                         index = idmap.size();
-                        idmap.emplace_back(streamID);
+                        idmap.emplace_back(stream_id);
                         streams.emplace_back();
                     }
                     else
@@ -314,13 +314,13 @@ int Xdf::load_xdf(std::string filename)
                     pugi::xml_document doc;
 
                     //read [StreamID]
-                    const auto streamID = read_bin<uint32_t>(file);
+                    const auto stream_id = read_bin<uint32_t>(file);
                     int index;
-                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), streamID)};
+                    std::vector<int>::iterator it{std::find(idmap.begin(), idmap.end(), stream_id)};
                     if (it == idmap.end())
                     {
                         index = idmap.size();
-                        idmap.emplace_back(streamID);
+                        idmap.emplace_back(stream_id);
                         streams.emplace_back();
                     }
                     else
