@@ -104,7 +104,7 @@ public:
 
     double minTS = 0;        /*!< The smallest time stamp across all streams. */
     double maxTS = 0;        /*!< The largest time stamp across all streams. */
-    size_t numerical_channel_count_ = 0;     /*!< The total number of numericla channels. */
+    size_t numerical_channel_count_ = 0;     /*!< The total number of numerical channels. */
     int majSR = 0;          /*!< The sample rate that has the most channels across all streams. */
     int maxSR = 0;          /*!< Highest sample rate across all streams. */
     std::vector<double> effectiveSampleRateVector; /*!< Effective Sample Rate of each stream. */
