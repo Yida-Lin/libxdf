@@ -55,9 +55,9 @@ T read_bin(std::istream& is)
 
 template <typename T>
 void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series) {
-    for (size_t v = 0; v < time_series->size(); ++v)
+    for (std::vector<T>& row : *time_series)
     {
-        (*time_series)[v].push_back(std::move(read_bin<T>(is)));
+        row.push_back(std::move(read_bin<T>(is)));
     }
 }
 
