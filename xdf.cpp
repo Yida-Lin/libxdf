@@ -269,21 +269,21 @@ int Xdf::load_xdf(std::string filename)
                         streams[index].last_timestamp = ts;
                         Stream& stream = streams[index];
 
-                        std::visit([this, &file](auto&& arg) {
-                            using T = typename std::remove_reference_t<decltype(arg)>
-                                ::value_type::value_type;
+                        std::visit([this, &file](auto&& time_series) {
+                            using T = typename std::remove_reference_t
+                                <decltype(time_series)>::value_type::value_type;
                             if constexpr (std::is_same_v<T, std::string>) {
-                                for (int v = 0; v < arg.size(); ++v)
+                                for (std::vector<std::string>& row : time_series)
                                 {
-                                    const auto length = Xdf::readLength(file);
+                                    const uint64_t length = Xdf::readLength(file);
                                     char* buffer = new char[length + 1];
                                     file.read(buffer, length);
                                     buffer[length] = '\0';
-                                    arg[v].emplace_back(buffer);
+                                    row.emplace_back(buffer);
                                     delete[] buffer;
                                 }
                             } else {
-                                read_time_series(file, &arg);
+                                read_time_series(file, &time_series);
                             }
                         }, stream.time_series);
                     }
