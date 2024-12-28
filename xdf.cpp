@@ -500,9 +500,9 @@ void Xdf::resample(int userSrate)
     clock_t time = clock();
 
 #define BUF_SIZE 8192
-    for (auto& stream : streams)
+    for (Stream& stream : streams)
     {
-        if (!stream.time_series.empty() &&
+        if (stream.time_series.index() != std::variant_npos &&
             !stream.info.channel_format.compare("string") &&
             stream.info.nominal_srate != userSrate &&
             stream.info.nominal_srate != 0)
@@ -523,71 +523,64 @@ void Xdf::resample(int userSrate)
             // initialize smarc filter state
             struct PState* pstate = smarc_init_pstate(pfilt);
 
-            for (auto& row : stream.time_series)
-            {
-                // initialize buffers
-                int read = 0;
-                int written = 0;
-                const int OUT_BUF_SIZE = (int)smarc_get_output_buffer_size(pfilt, row.size());
-                double* inbuf = new double[row.size()];
-                double* outbuf = new double[OUT_BUF_SIZE];
-
-                // Fill inbuf with the numeric values from the row
-                for (auto& val : row)
+            std::visit([&pfilt, &pstate](auto&& arg) {
+                using T = typename std::decay_t<decltype(arg)>::value_type::value_type;
+                for (std::vector<T>& row : arg)
                 {
-                    std::visit([&inbuf, &read](auto&& arg)
+                    // initialize buffers
+                    int read = 0;
+                    int written = 0;
+                    const int OUT_BUF_SIZE = (int)smarc_get_output_buffer_size(pfilt, row.size());
+                    double* inbuf = new double[row.size()];
+                    double* outbuf = new double[OUT_BUF_SIZE];
+
+                    // Fill inbuf with the numeric values from the row
+                    if constexpr (std::is_arithmetic_v<T>)
                     {
-                        using T = std::decay_t<decltype(arg)>;
-                        if constexpr (std::is_arithmetic_v<T>)
+                        for (const T& val : row)
                         {
-                            inbuf[read++] = static_cast<double>(arg); // Convert to double
+                            inbuf[read++] = static_cast<double>(val); // Convert to double
                         }
-                    }, val);
-                }
-                // resample signal block
-                written = smarc_resample(pfilt, pstate, inbuf, read, outbuf, OUT_BUF_SIZE);
+                    }
 
-                // Replace original values with the resampled output
-                read = 0;
-                for (auto& val : row)
-                {
+                    // resample signal block
+                    written = smarc_resample(pfilt, pstate, inbuf, read, outbuf, OUT_BUF_SIZE);
+
+                    // Replace original values with the resampled output
+                    read = 0;
                     // Only replace numeric values
-                    std::visit([&outbuf, &read](auto&& arg)
+                    if constexpr (std::is_arithmetic_v<T>)
                     {
-                        using T = std::decay_t<decltype(arg)>;
-                        if constexpr (std::is_arithmetic_v<T>)
+                        for (auto& val : row)
                         {
-                            arg = static_cast<T>(outbuf[read++]);
+                            val = static_cast<T>(outbuf[read++]);
                         }
-                    }, val);
-                }
+                    }
 
-                // flushing last values
-                written = smarc_resample_flush(pfilt, pstate, outbuf, OUT_BUF_SIZE);
+                    // flushing last values
+                    written = smarc_resample_flush(pfilt, pstate, outbuf, OUT_BUF_SIZE);
 
-                // Add any remaining flushed values
-                read = 0;
-                for (auto& val : row)
-                {
+                    // Add any remaining flushed values
+                    read = 0;
                     // Only replace numeric values
-                    std::visit([&outbuf, &read](auto&& arg)
+                    if constexpr (std::is_arithmetic_v<T>)
                     {
-                        using T = std::decay_t<decltype(arg)>;
-                        if constexpr (std::is_arithmetic_v<T>)
+                        for (auto& val : row)
                         {
-                            arg = static_cast<T>(outbuf[read++]);
+                            val = static_cast<T>(outbuf[read++]);
                         }
-                    }, val);
+                    }
+
+                    // you are done with converting your signal.
+                    // If you want to reuse the same converter to process another signal
+                    // just reset the state:
+                    smarc_reset_pstate(pstate, pfilt);
+
+                    delete[] inbuf;
+                    delete[] outbuf;
                 }
+            }, stream.time_series);
 
-                // you are done with converting your signal.
-                // If you want to reuse the same converter to process another signal
-                // just reset the state:
-                smarc_reset_pstate(pstate, pfilt);
-
-                delete[] inbuf;
-                delete[] outbuf;
-            }
             // release smarc filter state
             smarc_destroy_pstate(pstate);
 
