@@ -190,36 +190,36 @@ int Xdf::load_xdf(std::string filename)
                     Stream& stream = streams[index];
                     const int channel_count = stream.info.channel_count;
                     if (const std::string_view channel_format = stream.info.channel_format;
-                            channel_format.compare("string") == 0)
+                            channel_format == "string")
                     {
                         stream.time_series = std::vector<std::vector<std::string>>(
                             channel_count);
                     }
-                    else if (channel_format.compare("float32") == 0)
+                    else if (channel_format == "float32")
                     {
                         stream.time_series = std::vector<std::vector<float>>(
                             channel_count);
                     }
-                    else if (channel_format.compare("double64") == 0)
+                    else if (channel_format == "double64")
                     {
                         stream.time_series = std::vector<std::vector<double>>(
                             channel_count);
                     }
-                    else if (channel_format.compare("int8_t") == 0)
+                    else if (channel_format == "int8_t")
                     {
                         stream.time_series = std::vector<std::vector<int8_t>>(
                             channel_count);
                     }
-                    else if (channel_format.compare("int16_t") == 0)
+                    else if (channel_format == "int16_t")
                     {
                         stream.time_series = std::vector<std::vector<int16_t>>(
                             channel_count);
                     }
-                    else if (channel_format.compare("int32_t") == 0)
+                    else if (channel_format == "int32_t")
                     {
                         stream.time_series = std::vector<std::vector<int>>(channel_count);
                     }
-                    else if (channel_format.compare("int64_t") == 0)
+                    else if (channel_format == "int64_t")
                     {
                         stream.time_series = std::vector<std::vector<int64_t>>(
                                 channel_count);
@@ -447,7 +447,7 @@ void Xdf::syncTimeStamps()
     // Update first and last time stamps in stream footer
     for (size_t k = 0; k < this->streams.size(); k++)
     {
-        if (streams[k].info.channel_format.compare("string") == 0)
+        if (streams[k].info.channel_format == "string")
         {
             double min = NAN;
             double max = NAN;
@@ -493,7 +493,7 @@ void Xdf::resample(int userSrate)
     for (Stream& stream : streams)
     {
         if (stream.time_series.index() != std::variant_npos &&
-            !stream.info.channel_format.compare("string") &&
+            stream.info.channel_format != "string" &&
             stream.info.nominal_srate != userSrate &&
             stream.info.nominal_srate != 0)
         {
@@ -702,7 +702,7 @@ void Xdf::calcTotalChannel()
     for (size_t c = 0; c < streams.size(); c++)
     {
         if (streams[c].time_series.index() != std::variant_npos &&
-            streams[c].info.channel_format.compare("string") != 0)
+            streams[c].info.channel_format != "string")
         {
             numerical_channel_count_ += streams[c].info.channel_count;
 
@@ -740,7 +740,7 @@ void Xdf::adjustTotalLength()
     for (auto const& stream : streams)
     {
         if (stream.time_series.index() != std::variant_npos &&
-            stream.info.channel_format.compare("string") != 0)
+            stream.info.channel_format != "string")
         {
             std::visit([this](auto&& time_series) {
                 totalLen = std::max(totalLen, time_series.front().size());
