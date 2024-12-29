@@ -297,17 +297,6 @@ private:
      * \sa sampleRateMap
      */
     void loadSampleRateMap();
-
-    /*!
-     * \brief This function will get the length of the upcoming chunk, or the number of samples.
-     *
-     * While loading XDF file there are 2 cases where this function will be
-     * needed. One is to get the length of each chunk, one is to get the
-     * number of samples when loading the time series (Chunk tag 3).
-     * \param file is the XDF file that is being loaded in the type of `std::ifstream`.
-     * \return The length of the upcoming chunk (in bytes).
-     */
-    uint64_t readLength(std::ifstream &file);
 };
 
 } // namespace xdf

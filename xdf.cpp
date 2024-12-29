@@ -53,8 +53,46 @@ template <typename T>
     return obj;
 }
 
+
+/*!
+ * \brief Returns the length of the upcoming chunk, or the number of samples.
+ *
+ * While loading XDF file there are 2 cases where this function will be
+ * needed. One is to get the length of each chunk, one is to get the
+ * number of samples when loading the time series (Chunk tag 3).
+ * \param file is the XDF file that is being loaded in the type of `std::ifstream`.
+ * \return The length of the upcoming chunk (in bytes).
+ */
+uint64_t read_length(std::istream& is)
+{
+    switch (const auto bytes = read_bin<uint8_t>(is); bytes)
+    {
+    case 1:
+        return read_bin<uint8_t>(is);
+    case 4:
+        return read_bin<uint32_t>(is);
+    case 8:
+        return read_bin<uint64_t>(is);
+    default:
+        throw std::runtime_error("Invalid variable-length integer length: "
+                                 + std::to_string(static_cast<int>(bytes)));
+    }
+}
+
 template <typename T>
 void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series) {
+    if constexpr (std::is_same_v<T, std::string>) {
+        for (std::vector<std::string>& row : *time_series)
+        {
+            const uint64_t length = read_length(is);
+            char* buffer = new char[length + 1];
+            is.read(buffer, length);
+            buffer[length] = '\0';
+            row.emplace_back(buffer);
+            delete[] buffer;
+        }
+        return;
+    }
     for (std::vector<T>& row : *time_series)
     {
         row.push_back(std::move(read_bin<T>(is)));
@@ -113,7 +151,7 @@ int Xdf::load_xdf(std::string filename)
         //for each chunk
         while (1)
         {
-            uint64_t ChLen = readLength(file); //chunk length
+            uint64_t ChLen = read_length(file); //chunk length
 
             if (ChLen == 0)
                 break;
@@ -249,7 +287,7 @@ int Xdf::load_xdf(std::string filename)
 
 
                     //read [NumSampleBytes], [NumSamples]
-                    uint64_t numSamp = readLength(file);
+                    uint64_t numSamp = read_length(file);
 
                     //for each sample
                     for (size_t i = 0; i < numSamp; i++)
@@ -273,22 +311,10 @@ int Xdf::load_xdf(std::string filename)
                         streams[index].last_timestamp = ts;
                         Stream& stream = streams[index];
 
-                        std::visit([this, &file](auto&& time_series) {
+                        std::visit([&file](auto&& time_series) {
                             using T = typename std::remove_reference_t
                                 <decltype(time_series)>::value_type::value_type;
-                            if constexpr (std::is_same_v<T, std::string>) {
-                                for (std::vector<std::string>& row : time_series)
-                                {
-                                    const uint64_t length = Xdf::readLength(file);
-                                    char* buffer = new char[length + 1];
-                                    file.read(buffer, length);
-                                    buffer[length] = '\0';
-                                    row.emplace_back(buffer);
-                                    delete[] buffer;
-                                }
-                            } else {
-                                read_time_series(file, &time_series);
-                            }
+                            read_time_series<T>(file, &time_series);
                         }, stream.time_series);
                     }
                 }
@@ -600,30 +626,6 @@ void Xdf::resample(int userSrate)
 
     std::cout << "it took " << time << " clicks (" << ((float)time) / CLOCKS_PER_SEC << " seconds)"
         << " resampling" << std::endl;
-}
-
-//function of reading the length of each chunk
-uint64_t Xdf::readLength(std::ifstream& file)
-{
-    uint64_t length = 0;
-    switch (const auto bytes = read_bin<uint8_t>(file); bytes)
-    {
-    case 1:
-        length = read_bin<uint8_t>(file);
-        break;
-    case 4:
-        length = read_bin<uint32_t>(file);
-        break;
-    case 8:
-        length = read_bin<uint64_t>(file);
-        break;
-    default:
-        std::cout << "Invalid variable-length integer length ("
-            << static_cast<int>(bytes) << ") encountered.\n";
-        return 0;
-    }
-
-    return length;
 }
 
 void Xdf::findMinMax()
