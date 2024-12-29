@@ -22,12 +22,12 @@
 #ifndef XDF_H
 #define XDF_H
 
-#include <string>
-#include <vector>
-#include <map>
-#include <unordered_set>
 #include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <variant>
+#include <vector>
 
 namespace xdf {
 
@@ -77,7 +77,7 @@ public:
             std::string type;       /*!< Type of the current stream. */
             std::string channel_format;/*!< Channel format of the current stream. */
 
-            std::vector<std::map<std::string, std::string> > channels;/*!< A vector to store the meta-data of the channels of the current stream. */
+            std::vector<std::unordered_map<std::string, std::string> > channels;/*!< A vector to store the meta-data of the channels of the current stream. */
 
             std::vector<std::pair<double, double> > clock_offsets;  /*!< A vector to store clock offsets from the ClockOffset chunk. */
 
@@ -96,7 +96,7 @@ public:
 
     //XDF properties=================================================================================
 
-    std::vector<Stream> streams; /*!< A vector to store all the streams of the current XDF file. */
+    std::unordered_map<int, Stream> streams; /*!< A vector to store all the streams of the current XDF file. */
     float version;  /*!< The version of XDF file */
 
     uint64_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
@@ -104,13 +104,10 @@ public:
 
     double minTS = 0;        /*!< The smallest time stamp across all streams. */
     double maxTS = 0;        /*!< The largest time stamp across all streams. */
-    size_t numerical_channel_count_ = 0;     /*!< The total number of numerical channels. */
     int majSR = 0;          /*!< The sample rate that has the most channels across all streams. */
     int maxSR = 0;          /*!< Highest sample rate across all streams. */
     std::vector<double> effectiveSampleRateVector; /*!< Effective Sample Rate of each stream. */
     double fileEffectiveSampleRate = 0; /*!< If effective sample rates in all the streams are the same, this is the value. */
-    std::vector<int> streamMap;/*!< A vector indexes which channels belong to which stream.
-                                * The index is the same as channel number; the actual content is the stream Number */
 
     /*!
      * \brief Used as `std::vector<std::pair<std::pair<eventName, eventTimeStamp>, int> >`
@@ -229,18 +226,6 @@ private:
      * \brief calcEffectiveSrate
      */
     void calcEffectiveSrate();
-
-    /*!
-     * \brief Calculate the total channel count and store the result
-     * in `totalCh`.
-     *
-     * Channels of both regular and irregular sample rates are included.
-     * The streams with the channel format `string` are excluded, and are
-     * stored in `eventMap` instead.
-     *
-     * \sa totalCh, eventMap
-     */
-    void calcTotalChannel();
 
     /*!
      * \brief Find the sample rate that has the most channels.
