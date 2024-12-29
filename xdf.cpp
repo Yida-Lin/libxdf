@@ -261,11 +261,11 @@ int Xdf::load_xdf(std::string filename)
                     //read [StreamID]
                     const auto stream_id = read_bin<uint32_t>(file);
                     //read [NumSampleBytes], [NumSamples]
-                    const uint64_t numSamp = read_length(file);
+                    const uint64_t num_samples = read_length(file);
                     Stream& stream = streams[stream_id];
 
                     //for each sample
-                    for (size_t i = 0; i < numSamp; i++)
+                    for (size_t i = 0; i < num_samples; i++)
                     {
                         //read or deduce time stamp
                         const auto tsBytes = read_bin<uint8_t>(file);
