@@ -309,13 +309,12 @@ int Xdf::load_xdf(std::string filename)
                         }
 
                         streams[index].last_timestamp = ts;
-                        Stream& stream = streams[index];
 
                         std::visit([&file](auto&& time_series) {
                             using T = typename std::remove_reference_t
                                 <decltype(time_series)>::value_type::value_type;
                             read_time_series<T>(file, &time_series);
-                        }, stream.time_series);
+                        }, streams[index].time_series);
                     }
                 }
                 break;
