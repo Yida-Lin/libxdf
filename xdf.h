@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <set>
+#include <unordered_set>
 #include <cstdint>
 #include <variant>
 
@@ -125,12 +125,12 @@ public:
      */
     typedef double eventTimeStamp;
 
-    std::vector<std::pair<std::pair<eventName, eventTimeStamp>, int> > eventMap;/*!< The vector to store all the events across all streams.
-                                                                                 * The format is <<events, timestamps>, streamNum>. */
-    std::vector<std::string> dictionary;/*!< The vector to store unique event types with no repetitions. \sa eventMap */
-    std::vector<uint16_t> eventType;    /*!< The vector to store events by their index in the dictionary.\sa dictionary, eventMap */
+    // std::vector<std::pair<std::pair<eventName, eventTimeStamp>, int> > eventMap;/*!< The vector to store all the events across all streams.
+    //                                                                              * The format is <<events, timestamps>, streamNum>. */
+    // std::vector<std::string> dictionary;/*!< The vector to store unique event types with no repetitions. \sa eventMap */
+    // std::vector<uint16_t> eventType;    /*!< The vector to store events by their index in the dictionary.\sa dictionary, eventMap */
     std::vector<std::string> labels;    /*!< The vector to store descriptive labels of each channel. */
-    std::set<double> sampleRateMap;  /*!< The vector to store all sample rates across all the streams. */
+    std::unordered_set<double> sample_rates;  /*!< The vector to store all sample rates across all the streams. */
     std::vector<float> offsets;         /*!< Offsets of each channel after using subtractMean() function */
 
     std::string fileHeader;             /*!< Raw XML of the file header. */
@@ -285,18 +285,11 @@ private:
     void getHighestSampleRate();
 
     /*!
-     * \brief Copy all unique types of events from _eventMap_ to
-     * _dictionary_ with no repeats.
-     * \sa dictionary, eventMap
-     */
-    void loadDictionary();
-
-    /*!
      * \brief Load every sample rate appeared in the current file into
-     * member variable `sampleRateMap`.
-     * \sa sampleRateMap
+     * member variable `sample_rates`.
+     * \sa sampleRateSet
      */
-    void loadSampleRateMap();
+    void loadSampleRateSet();
 };
 
 } // namespace xdf

@@ -402,11 +402,9 @@ int Xdf::load_xdf(std::string filename)
 
         getHighestSampleRate();
 
-        loadSampleRateMap();
+        loadSampleRateSet();
 
         calcTotalChannel();
-
-        loadDictionary();
 
         calcEffectiveSrate();
 
@@ -425,7 +423,7 @@ int Xdf::load_xdf(std::string filename)
 void Xdf::syncTimeStamps()
 {
     // Sync time stamps
-    for (auto& stream : this->streams)
+    for (Stream& stream : streams)
     {
         if (!stream.clock_times.empty())
         {
@@ -451,64 +449,13 @@ void Xdf::syncTimeStamps()
         }
     }
 
-    // Sync event time stamps
-    for (auto& elem : this->eventMap)
-    {
-        if (!this->streams[elem.second].clock_times.empty())
-        {
-            size_t k = 0; // index iterating through streams[elem.second].clock_times
-
-            while (k < this->streams[elem.second].clock_times.size() - 1)
-            {
-                if (this->streams[elem.second].clock_times[k + 1] < elem.first.second)
-                {
-                    k++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            elem.first.second += this->streams[elem.second].clock_values[k];
-            // apply the last offset value to the timestamp; if there hasn't yet been an offset value take the first recorded one
-        }
-    }
-
     // Update first and last time stamps in stream footer
-    for (size_t k = 0; k < this->streams.size(); k++)
+    for (Stream& stream : streams)
     {
-        if (streams[k].info.channel_format == "string")
+        if (stream.time_stamps.size() > 0)
         {
-            double min = NAN;
-            double max = NAN;
-
-            for (auto const& elem : this->eventMap)
-            {
-                if (elem.second == (int)k)
-                {
-                    if (std::isnan(min) || elem.first.second < min)
-                    {
-                        min = elem.first.second;
-                    }
-
-                    if (std::isnan(max) || elem.first.second > max)
-                    {
-                        max = elem.first.second;
-                    }
-                }
-            }
-
-            streams[k].info.first_timestamp = min;
-            streams[k].info.last_timestamp = max;
-        }
-        else
-        {
-            if (streams[k].time_stamps.size() > 0)
-            {
-                streams[k].info.first_timestamp = streams[k].time_stamps.front();
-                streams[k].info.last_timestamp = streams[k].time_stamps.back();
-            }
+            stream.info.first_timestamp = stream.time_stamps.front();
+            stream.info.last_timestamp = stream.time_stamps.back();
         }
     }
 }
@@ -766,10 +713,15 @@ void Xdf::getHighestSampleRate()
     }
 }
 
-void Xdf::loadSampleRateMap()
+void Xdf::loadSampleRateSet()
 {
-    for (auto const& stream : streams)
-        sampleRateMap.emplace(stream.info.nominal_srate);
+    for (const Stream& stream : streams)
+    {
+        if (stream.info.channel_format != "string")
+        {
+            sample_rates.insert(stream.info.nominal_srate);
+        }
+    }
 }
 
 
@@ -982,26 +934,6 @@ void Xdf::createLabels()
                 channelCount++;
             }
         }
-    }
-}
-
-void Xdf::loadDictionary()
-{
-    //loop through the eventMap
-    for (auto const& entry : eventMap)
-    {
-        //search the dictionary to see whether an event is already in it
-        auto it = std::find(dictionary.begin(), dictionary.end(), entry.first.first);
-        //if it isn't yet
-        if (it == dictionary.end())
-        {
-            //add it to the dictionary, also store its index into eventType vector for future use
-            eventType.emplace_back(dictionary.size());
-            dictionary.emplace_back(entry.first.first);
-        }
-        //if it's already in there
-        else //store its index into eventType vector
-            eventType.emplace_back(std::distance(dictionary.begin(), it));
     }
 }
 
