@@ -232,37 +232,38 @@ int Xdf::load_xdf(std::string filename)
                     if (const std::string_view channel_format = stream.info.channel_format;
                             channel_format == "string")
                     {
-                        stream.time_series = std::vector<std::vector<std::string>>(
+                        stream.time_series.emplace<std::vector<std::vector<std::string>>>(
                             channel_count);
                     }
                     else if (channel_format == "float32")
                     {
-                        stream.time_series = std::vector<std::vector<float>>(
+                        stream.time_series.emplace<std::vector<std::vector<float>>>(
                             channel_count);
                     }
                     else if (channel_format == "double64")
                     {
-                        stream.time_series = std::vector<std::vector<double>>(
+                        stream.time_series.emplace<std::vector<std::vector<double>>>(
                             channel_count);
                     }
                     else if (channel_format == "int8_t")
                     {
-                        stream.time_series = std::vector<std::vector<int8_t>>(
+                        stream.time_series.emplace<std::vector<std::vector<int8_t>>>(
                             channel_count);
                     }
                     else if (channel_format == "int16_t")
                     {
-                        stream.time_series = std::vector<std::vector<int16_t>>(
+                        stream.time_series.emplace<std::vector<std::vector<int16_t>>>(
                             channel_count);
                     }
                     else if (channel_format == "int32_t")
                     {
-                        stream.time_series = std::vector<std::vector<int>>(channel_count);
+                        stream.time_series.emplace<std::vector<std::vector<int>>>(
+                            channel_count);
                     }
                     else if (channel_format == "int64_t")
                     {
-                        stream.time_series = std::vector<std::vector<int64_t>>(
-                                channel_count);
+                        stream.time_series.emplace<std::vector<std::vector<int64_t>>>(
+                            channel_count);
                     }
                     else {
                         throw std::runtime_error("Unexpected channel format: "
