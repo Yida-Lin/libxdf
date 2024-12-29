@@ -12,7 +12,7 @@
 //GNU General Public License for more details.
 
 //You should have received a copy of the GNU General Public License
-//along with this program.  If not, see <http: /www.gnu.org/licenses />.
+//along with this program. If not, see <http://www.gnu.org/licenses/>.
 //If you have questions, contact author at yida.lin@outlook.com
 
 
@@ -20,15 +20,15 @@
 
 #include <iostream>
 #include <fstream>
-#include "pugixml.hpp"  //pugi XML parser
 #include <sstream>
 #include <algorithm>
-#include "smarc/smarc.h"      //resampling library
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 #include <numeric>      //std::accumulate
-#include <functional>   // bind2nd
 #include <cmath>
 #include <variant>
+
+#include "pugixml.hpp"      //pugi XML parser
+#include "smarc/smarc.h"    //resampling library
 
 namespace xdf {
 namespace {
