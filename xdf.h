@@ -42,7 +42,7 @@ class Xdf
 {  
 public:
     //! Default constructor with no parameter.
-    Xdf();
+    explicit Xdf() = default;
 
     //subclass for single streams
     /*! \class Stream
@@ -125,10 +125,6 @@ public:
      */
     typedef double eventTimeStamp;
 
-    // std::vector<std::pair<std::pair<eventName, eventTimeStamp>, int> > eventMap;/*!< The vector to store all the events across all streams.
-    //                                                                              * The format is <<events, timestamps>, streamNum>. */
-    // std::vector<std::string> dictionary;/*!< The vector to store unique event types with no repetitions. \sa eventMap */
-    // std::vector<uint16_t> eventType;    /*!< The vector to store events by their index in the dictionary.\sa dictionary, eventMap */
     std::vector<std::string> labels;    /*!< The vector to store descriptive labels of each channel. */
     std::unordered_set<double> sample_rates;  /*!< The vector to store all sample rates across all the streams. */
     std::vector<float> offsets;         /*!< Offsets of each channel after using subtractMean() function */

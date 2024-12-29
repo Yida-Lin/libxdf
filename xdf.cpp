@@ -63,7 +63,7 @@ template <typename T>
  * \param file is the XDF file that is being loaded in the type of `std::ifstream`.
  * \return The length of the upcoming chunk (in bytes).
  */
-uint64_t read_length(std::istream& is)
+[[nodiscard]] uint64_t read_length(std::istream& is)
 {
     switch (const auto bytes = read_bin<uint8_t>(is); bytes)
     {
@@ -100,10 +100,6 @@ void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series
 }
 
 } // namespace
-
-Xdf::Xdf()
-{
-}
 
 int Xdf::load_xdf(std::string filename)
 {
@@ -723,7 +719,6 @@ void Xdf::loadSampleRateSet()
         }
     }
 }
-
 
 void Xdf::detrend()
 {
