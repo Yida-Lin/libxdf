@@ -96,7 +96,7 @@ public:
 
     //XDF properties=================================================================================
 
-    std::unordered_map<int, Stream> streams; /*!< A vector to store all the streams of the current XDF file. */
+    std::unordered_map<int, Stream> streams; /*!< Maps all stream IDs to streams in the XDF file. */
     float version;  /*!< The version of XDF file */
 
     uint64_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
