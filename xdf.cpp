@@ -472,7 +472,7 @@ void Xdf::resample(int userSrate)
                     // Only replace numeric values
                     if constexpr (std::is_arithmetic_v<T>)
                     {
-                        for (auto& val : row)
+                        for (T& val : row)
                         {
                             val = static_cast<T>(outbuf[read++]);
                         }
@@ -486,7 +486,7 @@ void Xdf::resample(int userSrate)
                     // Only replace numeric values
                     if constexpr (std::is_arithmetic_v<T>)
                     {
-                        for (auto& val : row)
+                        for (T& val : row)
                         {
                             val = static_cast<T>(outbuf[read++]);
                         }
