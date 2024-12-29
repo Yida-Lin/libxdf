@@ -772,21 +772,30 @@ void Xdf::loadSampleRateMap()
         sampleRateMap.emplace(stream.info.nominal_srate);
 }
 
-/*
- void Xdf::detrend()
- {
- for (auto &stream : streams)
- {
- for (auto &row : stream.time_series)
- {
- long double init = 0.0;
- long double mean = std::accumulate(row.begin(), row.end(), init) / row.size();
- for(auto &val: row) val -= mean;
- offsets.emplace_back(mean);
- }
- }
- }
- */
+
+void Xdf::detrend()
+{
+    for (Stream &stream : streams)
+    {
+        std::visit([this](auto&& time_series) {
+            using T = typename std::remove_reference_t<decltype(time_series)>
+                ::value_type::value_type;
+            if constexpr (std::is_arithmetic_v<T>) {
+                for (auto& row : time_series)
+                {
+                    long double init = 0.0;
+                    long double mean = std::accumulate(row.begin(), row.end(), init) / row.size();
+                    for (auto& val: row)
+                    {
+                        val -= mean;
+                    }
+                    offsets.push_back(mean);
+                }
+            }
+        }, stream.time_series);
+    }
+}
+
 
 void Xdf::calcEffectiveSrate()
 {
