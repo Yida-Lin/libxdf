@@ -46,10 +46,10 @@ namespace {
  * \return the read data
  */
 template <typename T>
-[[nodiscard]] T read_bin(std::istream& is)
+[[nodiscard]] T read_bin(std::istream& istream)
 {
     T obj;
-    is.read(reinterpret_cast<char*>(&obj), sizeof(T));
+    istream.read(reinterpret_cast<char*>(&obj), sizeof(T));
     return obj;
 }
 
@@ -63,16 +63,16 @@ template <typename T>
  * \param file is the XDF file that is being loaded in the type of `std::ifstream`.
  * \return The length of the upcoming chunk (in bytes).
  */
-[[nodiscard]] uint64_t read_length(std::istream& is)
+[[nodiscard]] uint64_t read_length(std::istream& istream)
 {
-    switch (const auto bytes = read_bin<uint8_t>(is); bytes)
+    switch (const auto bytes = read_bin<uint8_t>(istream); bytes)
     {
     case 1:
-        return read_bin<uint8_t>(is);
+        return read_bin<uint8_t>(istream);
     case 4:
-        return read_bin<uint32_t>(is);
+        return read_bin<uint32_t>(istream);
     case 8:
-        return read_bin<uint64_t>(is);
+        return read_bin<uint64_t>(istream);
     default:
         throw std::runtime_error("Invalid variable-length integer length: "
                                  + std::to_string(static_cast<int>(bytes)));
@@ -80,22 +80,23 @@ template <typename T>
 }
 
 template <typename T>
-void read_time_series(std::istream& is, std::vector<std::vector<T>>* time_series) {
+void read_time_series(std::istream& istream,
+                      std::vector<std::vector<T>>* time_series) {
     if constexpr (std::is_same_v<T, std::string>) {
         for (std::vector<std::string>& row : *time_series)
         {
-            const uint64_t length = read_length(is);
+            const uint64_t length = read_length(istream);
             char* buffer = new char[length + 1];
-            is.read(buffer, length);
+            istream.read(buffer, length);
             buffer[length] = '\0';
             row.emplace_back(buffer);
             delete[] buffer;
         }
-        return;
-    }
-    for (std::vector<T>& row : *time_series)
-    {
-        row.push_back(std::move(read_bin<T>(is)));
+    } else {
+        for (std::vector<T>& row : *time_series)
+        {
+            row.push_back(std::move(read_bin<T>(istream)));
+        }
     }
 }
 
