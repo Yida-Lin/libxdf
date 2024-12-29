@@ -312,8 +312,8 @@ int Xdf::load_xdf(std::string filename)
                         streams[index].last_timestamp = ts;
 
                         std::visit([&file](auto&& time_series) {
-                            using T = typename std::remove_reference_t
-                                <decltype(time_series)>::value_type::value_type;
+                            using T = typename std::decay_t<decltype(time_series)>
+                                ::value_type::value_type;
                             read_time_series<T>(file, &time_series);
                         }, streams[index].time_series);
                     }
@@ -545,7 +545,7 @@ void Xdf::resample(int userSrate)
             struct PState* pstate = smarc_init_pstate(pfilt);
 
             std::visit([&pfilt, &pstate](auto&& time_series) {
-                using T = typename std::remove_reference_t<decltype(time_series)>
+                using T = typename std::decay_t<decltype(time_series)>
                     ::value_type::value_type;
                 for (std::vector<T>& row : time_series)
                 {
@@ -778,7 +778,7 @@ void Xdf::detrend()
     for (Stream &stream : streams)
     {
         std::visit([this](auto&& time_series) {
-            using T = typename std::remove_reference_t<decltype(time_series)>
+            using T = typename std::decay_t<decltype(time_series)>
                 ::value_type::value_type;
             if constexpr (std::is_arithmetic_v<T>) {
                 for (auto& row : time_series)
