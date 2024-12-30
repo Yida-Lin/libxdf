@@ -78,6 +78,13 @@ template <typename T>
     }
 }
 
+/*!
+ * \brief Reads N samples from `istream` and appends to each row of
+ * `time_series`, where N is the number of channels in `time_series`.
+ *
+ * \param istream the input stream.
+ * \param time_series the 2D vector to append to.
+ */
 template <typename T>
 void read_time_series(std::istream& istream,
                       std::vector<std::vector<T>>* time_series) {
