@@ -274,22 +274,12 @@ int Xdf::load_xdf(std::string filename)
                     for (size_t i = 0; i < num_samples; i++)
                     {
                         //read or deduce time stamp
-                        const auto tsBytes = read_bin<uint8_t>(file);
-
-                        double ts; //temporary time stamp
-
-                        if (tsBytes == 8)
-                        {
-                            ts = read_bin<double>(file);
-                            stream.time_stamps.emplace_back(ts);
-                        }
-                        else
-                        {
-                            ts = stream.last_timestamp + stream.sampling_interval;
-                            stream.time_stamps.emplace_back(ts);
-                        }
-
-                        stream.last_timestamp = ts;
+                        const auto time_stamp_bytes = read_bin<uint8_t>(file);
+                        const double time_stamp = time_stamp_bytes == 8
+                            ? read_bin<double>(file)
+                            : stream.last_timestamp + stream.sampling_interval;
+                        stream.time_stamps.push_back(time_stamp);
+                        stream.last_timestamp = time_stamp;
 
                         std::visit([&file](auto&& time_series) {
                             using T = typename std::decay_t<decltype(time_series)>
