@@ -34,13 +34,12 @@ namespace xdf {
 namespace {
 
 /*!
- * \brief Read a binary scalar variable from an input stream.
+ * \brief Reads a binary scalar variable from an input stream.
  *
  * read_bin is a convenience wrapper for the common
  * file.read((char*) var, sizeof(var))
  * operation. Examples:
- * double foo = read_bin<double>(file); // use return value
- * read_bin(file, &foo); // read directly into foo
+ * double foo = read_bin<double>(file);
  * \param is an input stream to read from
  * \param obj pointer to a variable to load the data into or nullptr
  * \return the read data
@@ -60,7 +59,7 @@ template <typename T>
  * While loading XDF file there are 2 cases where this function will be
  * needed. One is to get the length of each chunk, one is to get the
  * number of samples when loading the time series (Chunk tag 3).
- * \param file is the XDF file that is being loaded in the type of `std::ifstream`.
+ * \param file is the XDF file that is being loaded.
  * \return The length of the upcoming chunk (in bytes).
  */
 [[nodiscard]] uint64_t read_length(std::istream& istream)
