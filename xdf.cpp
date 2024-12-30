@@ -79,7 +79,7 @@ template <typename T>
 }
 
 /*!
- * \brief Reads N samples from `istream` and appends to each row of
+ * \brief Reads N samples from `istream` and appends to each channel of
  * `time_series`, where N is the number of channels in `time_series`.
  *
  * \param istream the input stream.
@@ -89,19 +89,19 @@ template <typename T>
 void read_time_series(std::istream& istream,
                       std::vector<std::vector<T>>* time_series) {
     if constexpr (std::is_same_v<T, std::string>) {
-        for (std::vector<std::string>& row : *time_series)
+        for (std::vector<std::string>& channel : *time_series)
         {
             const uint64_t length = read_length(istream);
             char* buffer = new char[length + 1];
             istream.read(buffer, length);
             buffer[length] = '\0';
-            row.emplace_back(buffer);
+            channel.emplace_back(buffer);
             delete[] buffer;
         }
     } else {
-        for (std::vector<T>& row : *time_series)
+        for (std::vector<T>& channel : *time_series)
         {
-            row.push_back(std::move(read_bin<T>(istream)));
+            channel.push_back(std::move(read_bin<T>(istream)));
         }
     }
 }
@@ -452,19 +452,19 @@ void Xdf::resample(int userSrate)
             std::visit([&pfilt, &pstate](auto&& time_series) {
                 using T = typename std::decay_t<decltype(time_series)>
                     ::value_type::value_type;
-                for (std::vector<T>& row : time_series)
+                for (std::vector<T>& channel : time_series)
                 {
                     // initialize buffers
                     int read = 0;
                     int written = 0;
-                    const int OUT_BUF_SIZE = (int)smarc_get_output_buffer_size(pfilt, row.size());
-                    double* inbuf = new double[row.size()];
+                    const int OUT_BUF_SIZE = (int)smarc_get_output_buffer_size(pfilt, channel.size());
+                    double* inbuf = new double[channel.size()];
                     double* outbuf = new double[OUT_BUF_SIZE];
 
-                    // Fill inbuf with the numeric values from the row
+                    // Fill inbuf with the numeric values from the channel
                     if constexpr (std::is_arithmetic_v<T>)
                     {
-                        for (const T& val : row)
+                        for (const T& val : channel)
                         {
                             inbuf[read++] = static_cast<double>(val); // Convert to double
                         }
@@ -478,7 +478,7 @@ void Xdf::resample(int userSrate)
                     // Only replace numeric values
                     if constexpr (std::is_arithmetic_v<T>)
                     {
-                        for (T& val : row)
+                        for (T& val : channel)
                         {
                             val = static_cast<T>(outbuf[read++]);
                         }
@@ -492,7 +492,7 @@ void Xdf::resample(int userSrate)
                     // Only replace numeric values
                     if constexpr (std::is_arithmetic_v<T>)
                     {
-                        for (T& val : row)
+                        for (T& val : channel)
                         {
                             val = static_cast<T>(outbuf[read++]);
                         }
@@ -674,11 +674,11 @@ void Xdf::detrend()
             using T = typename std::decay_t<decltype(time_series)>
                 ::value_type::value_type;
             if constexpr (std::is_arithmetic_v<T>) {
-                for (auto& row : time_series)
+                for (std::vector<T>& channel : time_series)
                 {
                     long double init = 0.0;
-                    long double mean = std::accumulate(row.begin(), row.end(), init) / row.size();
-                    for (auto& val: row)
+                    long double mean = std::accumulate(channel.begin(), channel.end(), init) / channel.size();
+                    for (T& val: channel)
                     {
                         val -= mean;
                     }
