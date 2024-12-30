@@ -123,7 +123,6 @@ public:
     typedef double eventTimeStamp;
 
     std::vector<std::string> labels;    /*!< The vector to store descriptive labels of each channel. */
-    std::unordered_set<double> sample_rates;  /*!< The vector to store all sample rates across all the streams. */
     std::vector<float> offsets;         /*!< Offsets of each channel after using subtractMean() function */
 
     std::string fileHeader;             /*!< Raw XML of the file header. */
@@ -264,13 +263,6 @@ private:
      * \sa maxSR
      */
     void getHighestSampleRate();
-
-    /*!
-     * \brief Load every sample rate appeared in the current file into
-     * member variable `sample_rates`.
-     * \sa sampleRateSet
-     */
-    void loadSampleRateSet();
 };
 
 } // namespace xdf

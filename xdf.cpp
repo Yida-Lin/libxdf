@@ -352,8 +352,6 @@ int Xdf::load_xdf(std::string filename)
 
         getHighestSampleRate();
 
-        loadSampleRateSet();
-
         calcEffectiveSrate();
 
         //loading finishes, close file
@@ -642,17 +640,6 @@ void Xdf::getHighestSampleRate()
     {
         if (stream.info.nominal_srate > maxSR)
             maxSR = stream.info.nominal_srate;
-    }
-}
-
-void Xdf::loadSampleRateSet()
-{
-    for (const auto& [stream_id, stream] : streams)
-    {
-        if (stream.info.channel_format != "string")
-        {
-            sample_rates.insert(stream.info.nominal_srate);
-        }
     }
 }
 
