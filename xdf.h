@@ -22,12 +22,14 @@
 #ifndef XDF_H
 #define XDF_H
 
-#include <string>
-#include <vector>
-#include <map>
-#include <set>
 #include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <variant>
+#include <vector>
+
+namespace xdf {
 
 /*! \class Xdf
  *
@@ -40,7 +42,7 @@ class Xdf
 {  
 public:
     //! Default constructor with no parameter.
-    Xdf();
+    explicit Xdf() = default;
 
     //subclass for single streams
     /*! \class Stream
@@ -55,7 +57,14 @@ public:
     struct Stream
     {
         //! A 2D vector which stores the time series of a stream. Each row represents a channel.
-        std::vector<std::vector<std::variant<int, float, double, int64_t, std::string>>> time_series;
+        std::variant<
+            std::vector<std::vector<int8_t>>,
+            std::vector<std::vector<int16_t>>,
+            std::vector<std::vector<int>>,
+            std::vector<std::vector<int64_t>>,
+            std::vector<std::vector<float>>,
+            std::vector<std::vector<double>>,
+            std::vector<std::vector<std::string>>> time_series;
         std::vector<double> time_stamps; /*!< A vector to store time stamps. */
         std::string streamHeader;   /*!< Raw XML of stream header chunk. */
         std::string streamFooter;   /*!< Raw XML of stream footer chunk. */
@@ -68,7 +77,7 @@ public:
             std::string type;       /*!< Type of the current stream. */
             std::string channel_format;/*!< Channel format of the current stream. */
 
-            std::vector<std::map<std::string, std::string> > channels;/*!< A vector to store the meta-data of the channels of the current stream. */
+            std::vector<std::unordered_map<std::string, std::string> > channels;/*!< A vector to store the meta-data of the channels of the current stream. */
 
             std::vector<std::pair<double, double> > clock_offsets;  /*!< A vector to store clock offsets from the ClockOffset chunk. */
 
@@ -87,21 +96,18 @@ public:
 
     //XDF properties=================================================================================
 
-    std::vector<Stream> streams; /*!< A vector to store all the streams of the current XDF file. */
+    std::unordered_map<int, Stream> streams; /*!< Maps all stream IDs to streams in the XDF file. */
     float version;  /*!< The version of XDF file */
 
-    uint64_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
+    size_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
                              *time stamp and the largest multiplied by the major sample rate. */
 
     double minTS = 0;        /*!< The smallest time stamp across all streams. */
     double maxTS = 0;        /*!< The largest time stamp across all streams. */
-    size_t totalCh = 0;     /*!< The total number of channel count. */
     int majSR = 0;          /*!< The sample rate that has the most channels across all streams. */
     int maxSR = 0;          /*!< Highest sample rate across all streams. */
     std::vector<double> effectiveSampleRateVector; /*!< Effective Sample Rate of each stream. */
     double fileEffectiveSampleRate = 0; /*!< If effective sample rates in all the streams are the same, this is the value. */
-    std::vector<int> streamMap;/*!< A vector indexes which channels belong to which stream.
-                                * The index is the same as channel number; the actual content is the stream Number */
 
     /*!
      * \brief Used as `std::vector<std::pair<std::pair<eventName, eventTimeStamp>, int> >`
@@ -116,12 +122,7 @@ public:
      */
     typedef double eventTimeStamp;
 
-    std::vector<std::pair<std::pair<eventName, eventTimeStamp>, int> > eventMap;/*!< The vector to store all the events across all streams.
-                                                                                 * The format is <<events, timestamps>, streamNum>. */
-    std::vector<std::string> dictionary;/*!< The vector to store unique event types with no repetitions. \sa eventMap */
-    std::vector<uint16_t> eventType;    /*!< The vector to store events by their index in the dictionary.\sa dictionary, eventMap */
     std::vector<std::string> labels;    /*!< The vector to store descriptive labels of each channel. */
-    std::set<double> sampleRateMap;  /*!< The vector to store all sample rates across all the streams. */
     std::vector<float> offsets;         /*!< Offsets of each channel after using subtractMean() function */
 
     std::string fileHeader;             /*!< Raw XML of the file header. */
@@ -226,18 +227,6 @@ private:
     void calcEffectiveSrate();
 
     /*!
-     * \brief Calculate the total channel count and store the result
-     * in `totalCh`.
-     *
-     * Channels of both regular and irregular sample rates are included.
-     * The streams with the channel format `string` are excluded, and are
-     * stored in `eventMap` instead.
-     *
-     * \sa totalCh, eventMap
-     */
-    void calcTotalChannel();
-
-    /*!
      * \brief Find the sample rate that has the most channels.
      *
      * XDF format supports different sample rates across streams, but
@@ -274,46 +263,8 @@ private:
      * \sa maxSR
      */
     void getHighestSampleRate();
-
-    /*!
-     * \brief Copy all unique types of events from _eventMap_ to
-     * _dictionary_ with no repeats.
-     * \sa dictionary, eventMap
-     */
-    void loadDictionary();
-
-    /*!
-     * \brief Load every sample rate appeared in the current file into
-     * member variable `sampleRateMap`.
-     * \sa sampleRateMap
-     */
-    void loadSampleRateMap();
-
-    /*!
-     * \brief This function will get the length of the upcoming chunk, or the number of samples.
-     *
-     * While loading XDF file there are 2 cases where this function will be
-     * needed. One is to get the length of each chunk, one is to get the
-     * number of samples when loading the time series (Chunk tag 3).
-     * \param file is the XDF file that is being loaded in the type of `std::ifstream`.
-     * \return The length of the upcoming chunk (in bytes).
-     */
-    uint64_t readLength(std::ifstream &file);
-
-	/*!
-     * \brief Read a binary scalar variable from an input stream.
-     *
-     * readBin is a convenience wrapper for the common
-     * file.read((char*) var, sizeof(var))
-     * operation. Examples:
-     * double foo = readBin<double>(file); // use return value
-     * readBin(file, &foo); // read directly into foo
-     * \param is an input stream to read from
-     * \param obj pointer to a variable to load the data into or nullptr
-     * \return the read data
-     */
-    template<typename T> T readBin(std::istream& is, T* obj = nullptr);
- 
 };
+
+} // namespace xdf
 
 #endif // XDF_H
