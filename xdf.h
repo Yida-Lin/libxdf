@@ -99,7 +99,7 @@ public:
     std::unordered_map<int, Stream> streams; /*!< Maps all stream IDs to streams in the XDF file. */
     float version;  /*!< The version of XDF file */
 
-    uint64_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
+    size_t totalLen = 0;  /*!< The total length is the product of the range between the smallest
                              *time stamp and the largest multiplied by the major sample rate. */
 
     double minTS = 0;        /*!< The smallest time stamp across all streams. */

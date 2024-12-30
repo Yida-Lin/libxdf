@@ -640,11 +640,7 @@ void Xdf::adjustTotalLength()
             stream.info.channel_format != "string")
         {
             std::visit([this](auto&& time_series) {
-                const size_t row_length = time_series.front().size();
-                if (totalLen < row_length)
-                {
-                    totalLen = row_length;
-                }
+                totalLen = std::max(totalLen, time_series.front().size());
             }, stream.time_series);
         }
     }
