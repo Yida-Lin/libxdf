@@ -26,6 +26,8 @@ set(SOURCES
 )
 
 add_library(xdf ${SOURCES})
+add_executable(loadtest test.cpp)
+target_link_libraries(loadtest PRIVATE xdf)
 
 find_package(pugixml 1.9 QUIET)
 if(TARGET pugixml AND NOT XDF_NO_SYSTEM_PUGIXML)
